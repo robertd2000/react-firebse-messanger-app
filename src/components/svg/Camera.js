@@ -1,10 +1,10 @@
-import React from "react";
+import React from 'react'
 
 const Camera = () => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      style={{ width: "25px", height: "25px", cursor: "pointer" }}
+      style={{ width: '25px', height: '25px', cursor: 'pointer' }}
       viewBox="0 0 20 20"
       fill="currentColor"
     >
@@ -14,7 +14,7 @@ const Camera = () => {
         clipRule="evenodd"
       />
     </svg>
-  );
-};
+  )
+}
 
-export default Camera;
+export default Camera
