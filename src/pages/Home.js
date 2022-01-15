@@ -6,17 +6,24 @@ import {
   onSnapshot,
   addDoc,
   Timestamp,
+  orderBy,
+  setDoc,
+  doc,
+  getDoc,
+  updateDoc,
 } from 'firebase/firestore'
 import { ref, getDownloadURL, uploadBytes } from 'firebase/storage'
 import { db, auth, storage } from '../firebase'
 import { User } from '../components/User'
 import { MessageForm } from '../components/MessageForm'
+import { Message } from '../components/Message'
 
 export const Home = () => {
   const [users, setUsers] = useState([])
   const [chat, setChat] = useState('')
   const [text, setText] = useState('')
   const [img, setImg] = useState('')
+  const [messages, setMessages] = useState([])
 
   const user1 = auth.currentUser.uid
 
@@ -33,8 +40,29 @@ export const Home = () => {
     return () => unsub()
   }, [])
 
-  const selectUser = (user) => {
+  const selectUser = async (user) => {
     setChat(user)
+
+    const user2 = user.uid
+    const id = user1 > user2 ? `${user1 + user2}` : `${user2 + user1}`
+
+    const msgs = collection(db, 'messages', id, 'chat')
+    const q = query(msgs, orderBy('createdAt', 'asc'))
+
+    onSnapshot(q, (querySnapshot) => {
+      let msg = []
+      querySnapshot.forEach((doc) => {
+        msg.push(doc.data())
+      })
+      setMessages(msg)
+    })
+
+    const docSnap = await getDoc(doc(db, 'lastMsg', id))
+    if (docSnap.data() && docSnap.data().from !== user1) {
+      await updateDoc(doc(db, 'lastMsg', id), {
+        unread: false,
+      })
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -63,6 +91,15 @@ export const Home = () => {
       createdAt: Timestamp.fromDate(new Date()),
       media: url || '',
     })
+
+    await setDoc(doc(db, 'lastMsg', id), {
+      text,
+      from: user1,
+      to: user2,
+      createdAt: Timestamp.fromDate(new Date()),
+      media: url || '',
+      unread: true,
+    })
     setText('')
   }
 
@@ -70,7 +107,15 @@ export const Home = () => {
     <div className="home_container">
       <div className="users_container">
         {users.map((user) => {
-          return <User key={user.uid} user={user} selectUser={selectUser} />
+          return (
+            <User
+              key={user.uid}
+              user={user}
+              selectUser={selectUser}
+              user1={user1}
+              chat={chat}
+            />
+          )
         })}
       </div>
       <div className="messages_container">
@@ -78,6 +123,13 @@ export const Home = () => {
           <>
             <div className="messages_user">
               <h3>{chat.name}</h3>
+            </div>
+            <div className="messages">
+              {messages.length
+                ? messages.map((item, i) => {
+                    return <Message key={i} msg={item} user1={user1} />
+                  })
+                : ''}
             </div>
             <MessageForm
               text={text}
